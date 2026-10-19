@@ -16,21 +16,21 @@ const AxisText = forwardRef<ComponentRef<typeof Text>, NativeAxisProps>(function
 });
 const AnimatedAxisText = Animated.createAnimatedComponent(AxisText);
 
-export function VariableText({ text, size, frameWidth, x, y, visible }: VariableTextProps) {
+export function VariableText({ text, size, frameWidth, x, y, visible, onLayout }: VariableTextProps) {
   // Reanimated 4.7.1 filters this native style, so animate the prop directly.
-  const animatedProps = useAnimatedProps<NativeAxisProps>(() => visible.get() ? ({
+  const animatedProps = useAnimatedProps<NativeAxisProps>(() => !visible || visible.get() ? ({
     fontVariationSettings: getFontVariationSettings(x.get(), y.get()),
   }) : {});
-  const frame = useAnimatedStyle(() => visible.get() ? ({ width: frameWidth.get() }) : {});
+  const frame = useAnimatedStyle(() => frameWidth && (!visible || visible.get()) ? ({ width: frameWidth.get() }) : {});
   const style = { height: size * 1.18, fontSize: size, lineHeight: size * 1.18, letterSpacing: -size * 0.045, transform: [{ translateY: -size * 0.217 }] };
 
   return (
-    <AnimatedAxisText accessible={false} allowFontScaling={false} numberOfLines={1} ellipsizeMode="clip" animatedProps={animatedProps} style={[styles.text, style, frame]}>
+    <AnimatedAxisText accessible={false} allowFontScaling={false} numberOfLines={1} ellipsizeMode="clip" onLayout={onLayout} animatedProps={animatedProps} style={[styles.text, style, frame]}>
       {text}
     </AnimatedAxisText>
   );
 }
 
 const styles = StyleSheet.create({
-  text: { color: PALETTE.paper, fontFamily: 'RobotoFlex', includeFontPadding: false, flexShrink: 0 },
+  text: { color: PALETTE.paper, fontFamily: 'RobotoFlex', includeFontPadding: false, flexShrink: 0, alignSelf: 'flex-start' },
 });
