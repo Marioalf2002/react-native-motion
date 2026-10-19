@@ -55,7 +55,7 @@ VariableFontExample and VariableFontScreen export the same component. Pass navig
 
 ## Change it
 
-Edit WORDS in marquee.tsx to change the two scrolling lines. Paired hidden Text probes measure one and two repetitions of each line through onLayout. Their width difference sets the loop distance, including letter spacing between repeats.
+Edit WORD in marquee.tsx to change the scrolling word. Adjacent rows move in opposite directions. At mount, paired hidden Text probes measure one and two repetitions of the word through onLayout at a grid of fixed width and weight stops. Their width difference sets the loop distance, including letter spacing between repeats. A worklet interpolates between the stops, so the loop distance changes in the same frame as the glyphs.
 
 The pad maps horizontal movement to wdth 50–150 and vertical movement to wght 100–1000. Optical size stays at 144. Moving up also increases the uniformly displayed type size.
 

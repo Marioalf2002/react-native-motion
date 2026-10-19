@@ -1,6 +1,7 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, AppState, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
+  makeMutable,
   useAnimatedStyle,
   useDerivedValue,
   useFrameCallback,
@@ -9,35 +10,64 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
+import { getFontAxisValues } from './font-variations';
 import type { FontAxes } from './use-font-axes';
 import { VariableText } from './variable-text';
 
-const WORDS = ['EXPO', 'VARIABLE FONTS'] as const;
+const WORD = 'EXPO';
 const CAP_RATIO = 0.76;
 const SPEED = 42;
+// Axis stops for the loop width table. The worklet interpolates between them.
+const WIDTH_STOPS = [50, 75, 100, 125, 150];
+const WEIGHT_STOPS = [100, 250, 400, 550, 700, 850, 1000];
+const PROBES = WEIGHT_STOPS.flatMap((weight) => WIDTH_STOPS.map((width) => ({
+  x: makeMutable((width - 50) / 100),
+  y: makeMutable(Math.pow((1000 - weight) / 900, 0.25)),
+})));
 type FontPoint = Pick<FontAxes, 'x' | 'y'>;
 
-function useMarqueeWord(index: number, viewportWidth: number, scale: SharedValue<number>) {
-  const text = `${WORDS[index].replaceAll(' ', '\u00a0')}\u00a0`;
-  const singleWidth = useSharedValue(0);
-  const doubleWidth = useSharedValue(0);
-  // Subtract runs to cancel platform-specific spacing at the last character.
+function locate(stops: number[], value: number) {
+  'worklet';
+  let index = 0;
+  while (index < stops.length - 2 && value > stops[index + 1]) index++;
+  const t = (value - stops[index]) / (stops[index + 1] - stops[index]);
+  return { index, t: Math.max(0, Math.min(1, t)) };
+}
+
+function interpolateLoopWidth(table: number[], x: number, y: number) {
+  'worklet';
+  const { width, weight } = getFontAxisValues(x, y);
+  const column = locate(WIDTH_STOPS, width);
+  const row = locate(WEIGHT_STOPS, weight);
+  const at = (c: number, r: number) => table[r * WIDTH_STOPS.length + c];
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const top = lerp(at(column.index, row.index), at(column.index + 1, row.index), column.t);
+  const bottom = lerp(at(column.index, row.index + 1), at(column.index + 1, row.index + 1), column.t);
+  return lerp(top, bottom, row.t);
+}
+
+// Probe one and two repetitions at fixed axis stops once. Subtracting them keeps the
+// spacing between repeats. The worklet interpolates the table, so the loop width
+// changes in the same frame as the glyphs instead of after an onLayout round trip.
+function useMarqueeWord(viewportWidth: number, x: SharedValue<number>, y: SharedValue<number>, scale: SharedValue<number>) {
+  const text = `${WORD}\u00a0`;
+  const table = useSharedValue<number[]>([]);
+  const probes = useRef({ single: [] as number[], double: [] as number[] });
   const width = useDerivedValue(() => {
-    const single = singleWidth.get();
-    const double = doubleWidth.get();
-    return Number.isFinite(single) && Number.isFinite(double) && single > 0 && double > single ? double - single : 0;
+    const periods = table.get();
+    return periods.length === PROBES.length ? interpolateLoopWidth(periods, x.get(), y.get()) : 0;
   });
   const frameWidth = useDerivedValue(() => viewportWidth / scale.get() + width.get() + 2);
   const phase = useSharedValue(0);
-  const onLayout = useCallback((event: LayoutChangeEvent) => {
+  const onProbeLayout = useCallback((index: number, copies: 'single' | 'double', event: LayoutChangeEvent) => {
     const measuredWidth = event.nativeEvent.layout.width;
-    if (Number.isFinite(measuredWidth) && measuredWidth > 0) singleWidth.set(measuredWidth);
-  }, [singleWidth]);
-  const onDoubleLayout = useCallback((event: LayoutChangeEvent) => {
-    const measuredWidth = event.nativeEvent.layout.width;
-    if (Number.isFinite(measuredWidth) && measuredWidth > 0) doubleWidth.set(measuredWidth);
-  }, [doubleWidth]);
-  return useMemo(() => ({ text, width, frameWidth, phase, onLayout, onDoubleLayout }), [text, width, frameWidth, phase, onLayout, onDoubleLayout]);
+    if (!Number.isFinite(measuredWidth) || measuredWidth <= 0) return;
+    const { single, double } = probes.current;
+    (copies === 'single' ? single : double)[index] = measuredWidth;
+    const periods = PROBES.map((_, probe) => double[probe] - single[probe]);
+    if (periods.every((period) => period > 0)) table.set(periods);
+  }, [table]);
+  return useMemo(() => ({ text, width, frameWidth, phase, onProbeLayout }), [text, width, frameWidth, phase, onProbeLayout]);
 }
 
 function getPosterSizing(width: number, height: number) {
@@ -66,9 +96,7 @@ export const Marquee = memo(function Marquee({ width, height, x, y, isActive = t
   const fontSize = useDerivedValue(() => sizing.max - y.get() * (sizing.max - sizing.min));
   const rowHeight = useDerivedValue(() => fontSize.get() * CAP_RATIO);
   const scale = useDerivedValue(() => fontSize.get() / renderSize);
-  const expo = useMarqueeWord(0, width, scale);
-  const variableFonts = useMarqueeWord(1, width, scale);
-  const words = useMemo(() => [expo, variableFonts], [expo, variableFonts]);
+  const word = useMarqueeWord(width, x, y, scale);
   const repeats = Math.ceil(width / renderSize) * 4 + 2;
   const rowCount = Math.ceil(height / (sizing.min * CAP_RATIO)) + 2;
 
@@ -93,22 +121,20 @@ export const Marquee = memo(function Marquee({ width, height, x, y, isActive = t
   useFrameCallback(({ timeSincePreviousFrame }) => {
     if (running.get()) {
       const travel = Math.min(timeSincePreviousFrame ?? 0, 32) * SPEED / 1000;
-      for (const word of words) {
-        const period = word.width.get() * scale.get();
-        if (period > 0) word.phase.set((word.phase.get() + travel / period) % 1);
-      }
+      const period = word.width.get() * scale.get();
+      if (period > 0) word.phase.set((word.phase.get() + travel / period) % 1);
     }
   });
 
   return (
-    <View pointerEvents="none" accessible accessibilityRole="image" accessibilityLabel="Moving Expo and Variable Fonts typography on alternating rows. Adjacent rows travel in opposite directions." style={StyleSheet.absoluteFill}>
-      <View aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.measurement, { width: renderSize * Math.max(...WORDS.map((word) => word.length)) * 4 }]}>
-        {words.flatMap((word, index) => [
-          <VariableText key={`${index}-single`} text={word.text} size={renderSize} x={x} y={y} onLayout={word.onLayout} />,
-          <VariableText key={`${index}-double`} text={word.text.repeat(2)} size={renderSize} x={x} y={y} onLayout={word.onDoubleLayout} />,
+    <View pointerEvents="none" accessible accessibilityRole="image" accessibilityLabel="Moving Expo typography on alternating rows. Adjacent rows travel in opposite directions." style={StyleSheet.absoluteFill}>
+      <View aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.measurement, { width: renderSize * word.text.length * 4 }]}>
+        {PROBES.flatMap((probe, index) => [
+          <VariableText key={`${index}-single`} text={word.text} size={renderSize} x={probe.x} y={probe.y} onLayout={(event) => word.onProbeLayout(index, 'single', event)} />,
+          <VariableText key={`${index}-double`} text={word.text.repeat(2)} size={renderSize} x={probe.x} y={probe.y} onLayout={(event) => word.onProbeLayout(index, 'double', event)} />,
         ])}
       </View>
-      {words.map((word, index) => (
+      {[0, 1].map((index) => (
         <MarqueeGroup key={index} index={index} word={word} repeats={repeats} scale={scale} rowHeight={rowHeight} rowCount={rowCount} renderSize={renderSize} viewportHeight={height} axes={axes} />
       ))}
     </View>
