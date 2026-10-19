@@ -25,9 +25,17 @@ export function VariableText({ text, size, frameWidth, x, y, visible, onLayout }
   const style = { height: size * 1.18, fontSize: size, lineHeight: size * 1.18, letterSpacing: -size * 0.045, transform: [{ translateY: -size * 0.217 }] };
 
   return (
-    <AnimatedAxisText accessible={false} allowFontScaling={false} numberOfLines={1} ellipsizeMode="clip" onLayout={onLayout} animatedProps={animatedProps} style={[styles.text, style, frame]}>
-      {text}
-    </AnimatedAxisText>
+    <Animated.Text
+      accessible={false}
+      allowFontScaling={false}
+      numberOfLines={1}
+      ellipsizeMode="clip"
+      onLayout={onLayout}
+      style={[styles.text, style, frame]}
+    >
+      {/* Keep axes on the text run so Android measures its variable advances. */}
+      <AnimatedAxisText accessible={false} allowFontScaling={false} animatedProps={animatedProps}>{text}</AnimatedAxisText>
+    </Animated.Text>
   );
 }
 

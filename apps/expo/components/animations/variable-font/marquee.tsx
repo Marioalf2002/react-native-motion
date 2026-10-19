@@ -19,14 +19,25 @@ type FontPoint = Pick<FontAxes, 'x' | 'y'>;
 
 function useMarqueeWord(index: number, viewportWidth: number, scale: SharedValue<number>) {
   const text = `${WORDS[index].replaceAll(' ', '\u00a0')}\u00a0`;
-  const width = useSharedValue(0);
+  const singleWidth = useSharedValue(0);
+  const doubleWidth = useSharedValue(0);
+  // Subtract runs to cancel platform-specific spacing at the last character.
+  const width = useDerivedValue(() => {
+    const single = singleWidth.get();
+    const double = doubleWidth.get();
+    return Number.isFinite(single) && Number.isFinite(double) && single > 0 && double > single ? double - single : 0;
+  });
   const frameWidth = useDerivedValue(() => viewportWidth / scale.get() + width.get() + 2);
   const phase = useSharedValue(0);
   const onLayout = useCallback((event: LayoutChangeEvent) => {
     const measuredWidth = event.nativeEvent.layout.width;
-    if (Number.isFinite(measuredWidth) && measuredWidth > 0) width.set(measuredWidth);
-  }, [width]);
-  return useMemo(() => ({ text, width, frameWidth, phase, onLayout }), [text, width, frameWidth, phase, onLayout]);
+    if (Number.isFinite(measuredWidth) && measuredWidth > 0) singleWidth.set(measuredWidth);
+  }, [singleWidth]);
+  const onDoubleLayout = useCallback((event: LayoutChangeEvent) => {
+    const measuredWidth = event.nativeEvent.layout.width;
+    if (Number.isFinite(measuredWidth) && measuredWidth > 0) doubleWidth.set(measuredWidth);
+  }, [doubleWidth]);
+  return useMemo(() => ({ text, width, frameWidth, phase, onLayout, onDoubleLayout }), [text, width, frameWidth, phase, onLayout, onDoubleLayout]);
 }
 
 function getPosterSizing(width: number, height: number) {
@@ -91,10 +102,11 @@ export const Marquee = memo(function Marquee({ width, height, x, y, isActive = t
 
   return (
     <View pointerEvents="none" accessible accessibilityRole="image" accessibilityLabel="Moving Expo and Variable Fonts typography on alternating rows. Adjacent rows travel in opposite directions." style={StyleSheet.absoluteFill}>
-      <View aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.measurement, { width: renderSize * Math.max(...WORDS.map((word) => word.length)) * 2 }]}>
-        {words.map((word, index) => (
-          <VariableText key={index} text={word.text} size={renderSize} x={x} y={y} onLayout={word.onLayout} />
-        ))}
+      <View aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.measurement, { width: renderSize * Math.max(...WORDS.map((word) => word.length)) * 4 }]}>
+        {words.flatMap((word, index) => [
+          <VariableText key={`${index}-single`} text={word.text} size={renderSize} x={x} y={y} onLayout={word.onLayout} />,
+          <VariableText key={`${index}-double`} text={word.text.repeat(2)} size={renderSize} x={x} y={y} onLayout={word.onDoubleLayout} />,
+        ])}
       </View>
       {words.map((word, index) => (
         <MarqueeGroup key={index} index={index} word={word} repeats={repeats} scale={scale} rowHeight={rowHeight} rowCount={rowCount} renderSize={renderSize} viewportHeight={height} axes={axes} />

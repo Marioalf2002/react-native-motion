@@ -22,14 +22,10 @@ export default function FontExample() {
   if (!loaded) return null;
 
   return (
-    <Text
-      style={{
-        fontFamily: 'RobotoFlex',
-        fontSize: 72,
-        fontVariationSettings: '"opsz" 144, "wdth" 100, "wght" 700',
-      }}
-    >
-      EXPO
+    <Text style={{ fontFamily: 'RobotoFlex', fontSize: 72 }}>
+      <Text style={{ fontVariationSettings: '"opsz" 144, "wdth" 100, "wght" 700' }}>
+        EXPO
+      </Text>
     </Text>
   );
 }
@@ -42,6 +38,8 @@ export default function FontExample() {
 Copy the complete [variable-font folder](https://github.com/SchroederNathan/react-native-motion/tree/main/apps/expo/components/animations/variable-font), including `assets`, into your components directory. Keep it outside Expo Router's route directory so Metro can resolve `variable-text.web.tsx`.
 
 <Installer packages={['expo-font', 'react-native-reanimated', 'react-native-worklets', 'react-native-gesture-handler', 'react-native-safe-area-context']} />
+
+For web, also run `npx expo install react-dom react-native-web`.
 
 Use SDK 58-compatible packages and rebuild your development app after adding native dependencies. Render the example inside your gesture and safe-area providers:
 
@@ -69,12 +67,12 @@ export default function App() {
 
 ## Change the poster
 
-Edit `WORDS` in `marquee.tsx` to change the two repeating lines. Two hidden Text probes measure the current word widths with `onLayout`; shared values use those widths to keep the scrolling loops aligned as font axes change.
+Edit `WORDS` in `marquee.tsx` to change the two repeating lines. Paired hidden Text probes measure one and two repetitions of each line through `onLayout`. Their width difference sets the loop distance, including letter spacing between repeats.
 
 The XY pad maps `x` to `wdth = 50 + 100x` and `y` to `wght = 1000 - 900y⁴`, with `opsz` fixed at 144. Moving up also increases the displayed size. Rows moving in the same direction share an animated parent.
 
-`variable-text.tsx` uses `useAnimatedProps` for native axis updates because Reanimated 4.7.1 filters `fontVariationSettings` out of animated styles. Keep its small Text wrapper, which sets the initial axes through the style. The web renderer uses `useAnimatedStyle`.
+`variable-text.tsx` uses `useAnimatedProps` for native axis updates because Reanimated 4.7.1 filters `fontVariationSettings` out of animated styles. Keep the nested Text structure: the outer Text owns font and layout, and the inner Text owns the axes so Android measures the changing widths correctly. Its ref-forwarding wrapper sets the initial axes through the style. The web renderer uses `useAnimatedStyle`.
 
 The marquee pauses when the app is inactive, Reduce Motion is enabled, or `isActive` is false. The pad has native accessibility actions and web keyboard controls. The measured poster disables system font scaling and has one accessible image description.
 
-Based on [Nathan Schroeder's Expo variable font example](https://github.com/SchroederNathan/expo-variable-font). Keep `assets/RobotoFlex-OFL.txt` with redistributed copies of the bundled font. The website and app catalog use the supplied 720 × 720, 60 fps video.
+Keep `assets/RobotoFlex-OFL.txt` with redistributed copies of the bundled font. The website and app catalog use the supplied 720 × 720, 60 fps video.

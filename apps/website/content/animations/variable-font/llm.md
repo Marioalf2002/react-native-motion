@@ -14,14 +14,10 @@ export default function FontExample() {
   if (!loaded) return null;
 
   return (
-    <Text
-      style={{
-        fontFamily: 'RobotoFlex',
-        fontSize: 72,
-        fontVariationSettings: '"opsz" 144, "wdth" 100, "wght" 700',
-      }}
-    >
-      EXPO
+    <Text style={{ fontFamily: 'RobotoFlex', fontSize: 72 }}>
+      <Text style={{ fontVariationSettings: '"opsz" 144, "wdth" 100, "wght" 700' }}>
+        EXPO
+      </Text>
     </Text>
   );
 }
@@ -34,6 +30,8 @@ Copy the complete [variable-font folder](https://github.com/SchroederNathan/reac
 ```bash
 npx expo install expo-font react-native-reanimated react-native-worklets react-native-gesture-handler react-native-safe-area-context
 ```
+
+For web, also run `npx expo install react-dom react-native-web`.
 
 Use SDK 58-compatible versions, including Reanimated 4.7.1, Worklets 0.13, and Gesture Handler 3. Build a development app after adding native packages.
 
@@ -58,8 +56,8 @@ VariableFontExample aliases VariableFontScreen. Its optional isActive prop defau
 ## Keep the implementation focused
 
 - variable-font-screen.tsx loads the TTF with useFonts and lays out a rounded React Native View.
-- marquee.tsx defines WORDS, the two scrolling tracks, and hidden Text probes. onLayout writes each word's intrinsic width into a shared value for the current font axes. Measurements keep loop widths aligned without React state updates per drag frame.
-- variable-text.tsx animates native Text.fontVariationSettings through useAnimatedProps. Reanimated 4.7.1 filters this field out of native animated styles, so preserve the ref-forwarding Text wrapper and its initial fontVariationSettings style.
+- marquee.tsx defines WORDS and the two scrolling tracks. Paired hidden Text probes measure one and two repetitions through onLayout; their width difference sets the loop distance, including letter spacing between repeats. Shared values handle updates without React state updates per drag frame.
+- variable-text.tsx animates native Text.fontVariationSettings through useAnimatedProps. Reanimated 4.7.1 filters this field out of native animated styles, so preserve the ref-forwarding Text wrapper and its initial fontVariationSettings style. Keep font and layout on the outer Text, with axes on the inner Text; this lets Android measure changing variable-font advances.
 - variable-text.web.tsx uses useAnimatedStyle for browser font axes. Keep the platform renderer and shared variable-text.types.ts props together.
 - font-variations.ts maps x/y to the axes. use-font-axes.ts owns shared values and accessible state; xy-pad.tsx owns the gesture, keyboard controls, and native accessibility actions.
 
@@ -69,4 +67,4 @@ To change the lines, edit the two WORDS strings in marquee.tsx. Normal runtime T
 
 Pause scrolling while isActive is false, the app is inactive, or Reduce Motion is enabled. Keep accessible pad controls usable while paused. The decorative poster uses allowFontScaling={false} to preserve measured layout and exposes one image description rather than each repeated word.
 
-Keep assets/RobotoFlex-OFL.txt with redistributed fonts. The source is based on [expo-variable-font](https://github.com/SchroederNathan/expo-variable-font). The supplied 720 × 720, 60 fps video is the website and app catalog demo.
+Keep assets/RobotoFlex-OFL.txt with redistributed fonts. The supplied 720 × 720, 60 fps video is the website and app catalog demo.

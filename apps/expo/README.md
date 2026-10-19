@@ -28,7 +28,10 @@ Or from this directory:
 bun start         # expo start
 bun ios           # build & run on iOS
 bun android       # build & run on Android
+bun web           # run in the browser
 ```
+
+On web, Variable Font is interactive. The other animations have video previews in the gallery.
 
 ## EAS builds
 
