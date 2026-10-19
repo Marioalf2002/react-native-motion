@@ -48,7 +48,9 @@
           "photosPermission": "Allow $(PRODUCT_NAME) to show your photos in the attachment picker demo.",
           "savePhotosPermission": false,
           "isAccessMediaLocationEnabled": false,
-          "granularPermissions": ["photo"]
+          "granularPermissions": [
+            "photo"
+          ]
         }
       ],
       "expo-video",
@@ -75,7 +77,8 @@
             }
           ]
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "extra": {
       "router": {},
@@ -85,7 +88,7 @@
     },
     "owner": "exponathan",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/90cd6b8c-b589-4620-9893-eb8e4e150eab"

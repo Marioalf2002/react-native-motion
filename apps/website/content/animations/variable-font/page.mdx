@@ -1,0 +1,80 @@
+export const meta = {
+  title: 'Variable Font',
+  slug: 'variable-font',
+  description: "A Roboto Flex poster using Expo SDK 58's variable font support. Drag the XY pad to change native font width, weight, and size while alternating rows scroll in opposite directions.",
+  video: '/videos/variable-font.mp4',
+  tags: ['typography', 'variable-font', 'expo-font', 'sdk-58', 'marquee', 'gesture', 'reanimated'],
+}
+
+## Use the variable font
+
+Use Expo SDK 58 with React Native 0.88. Load the variable TTF with `expo-font`, then set its axes on native Text:
+
+```tsx
+import { useFonts } from 'expo-font';
+import { Text } from 'react-native';
+
+export default function FontExample() {
+  const [loaded, error] = useFonts({
+    RobotoFlex: require('./assets/RobotoFlex.ttf'),
+  });
+  if (error) throw error;
+  if (!loaded) return null;
+
+  return (
+    <Text
+      style={{
+        fontFamily: 'RobotoFlex',
+        fontSize: 72,
+        fontVariationSettings: '"opsz" 144, "wdth" 100, "wght" 700',
+      }}
+    >
+      EXPO
+    </Text>
+  );
+}
+```
+
+`RobotoFlex` is the registered family name. `wdth` controls width, `wght` controls weight, and `opsz` controls optical size. One font file supports all these settings.
+
+## Run the poster
+
+Copy the complete [variable-font folder](https://github.com/SchroederNathan/react-native-motion/tree/main/apps/expo/components/animations/variable-font), including `assets`, into your components directory. Keep it outside Expo Router's route directory so Metro can resolve `variable-text.web.tsx`.
+
+<Installer packages={['expo-font', 'react-native-reanimated', 'react-native-worklets', 'react-native-gesture-handler', 'react-native-safe-area-context']} />
+
+Use SDK 58-compatible packages and rebuild your development app after adding native dependencies. Render the example inside your gesture and safe-area providers:
+
+<CodePreviewer>
+
+```tsx title="App.tsx"
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { VariableFontExample } from './components/variable-font';
+
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <VariableFontExample />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+```
+
+</CodePreviewer>
+
+`VariableFontExample` and `VariableFontScreen` export the same component. Pass navigation focus as `isActive` if your navigator keeps inactive screens mounted. It defaults to `true`.
+
+## Change the poster
+
+Edit `WORDS` in `marquee.tsx` to change the two repeating lines. Two hidden Text probes measure the current word widths with `onLayout`; shared values use those widths to keep the scrolling loops aligned as font axes change.
+
+The XY pad maps `x` to `wdth = 50 + 100x` and `y` to `wght = 1000 - 900y⁴`, with `opsz` fixed at 144. Moving up also increases the displayed size. Rows moving in the same direction share an animated parent.
+
+`variable-text.tsx` uses `useAnimatedProps` for native axis updates because Reanimated 4.7.1 filters `fontVariationSettings` out of animated styles. Keep its small Text wrapper, which sets the initial axes through the style. The web renderer uses `useAnimatedStyle`.
+
+The marquee pauses when the app is inactive, Reduce Motion is enabled, or `isActive` is false. The pad has native accessibility actions and web keyboard controls. The measured poster disables system font scaling and has one accessible image description.
+
+Based on [Nathan Schroeder's Expo variable font example](https://github.com/SchroederNathan/expo-variable-font). Keep `assets/RobotoFlex-OFL.txt` with redistributed copies of the bundled font. The website and app catalog use the supplied 720 × 720, 60 fps video.

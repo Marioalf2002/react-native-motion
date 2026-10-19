@@ -15,7 +15,7 @@ Bun workspaces:
 
 | Path | Description |
 | --- | --- |
-| `apps/expo` | The React Native Motion app (Expo SDK 56, expo-router, Reanimated 4) |
+| `apps/expo` | The React Native Motion app (Expo SDK 58, expo-router, Reanimated 4) |
 | `apps/website` | Landing page and docs (Next.js 16, Tailwind CSS 4, MDX) |
 
 ## Getting Started

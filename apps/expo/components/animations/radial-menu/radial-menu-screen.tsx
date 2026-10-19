@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { useCallback, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -38,7 +38,7 @@ function MediaCard({
   item: MediaCardItem;
   onSelect: (item: MediaCardItem, actionId: string) => void;
 }) {
-  const cardRef = useRef<View>(null);
+  const cardRef = useRef<ViewInstance>(null);
 
   const handleSelect = useCallback(
     (actionId: string) => onSelect(item, actionId),

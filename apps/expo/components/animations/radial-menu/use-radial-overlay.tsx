@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useCallback, type ReactNode, type RefObject } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ViewInstance } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -32,7 +32,7 @@ export function useRadialOverlay({
   actions: RadialActionDef[];
   onSelect: (id: string) => void;
   onCancel?: () => void;
-  targetRef: RefObject<View | null>;
+  targetRef: RefObject<ViewInstance | null>;
   renderClone: (layout: CloneLayout) => ReactNode;
 }) {
   const { showOverlay, hideOverlay } = useOverlay();

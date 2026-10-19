@@ -22,6 +22,14 @@ export interface Animation {
 
 export const animations: Animation[] = [
   {
+    title: 'Variable Font',
+    slug: 'variable-font',
+    description:
+      'A Roboto Flex poster using Expo SDK 58\'s variable font support. Drag the XY pad to change native font width, weight, and size while alternating rows scroll in opposite directions.',
+    tags: ['typography', 'variable-font', 'expo-font', 'sdk-58', 'marquee', 'gesture', 'reanimated'],
+    video: require('../assets/videos/variable-font.mp4'),
+  },
+  {
     title: 'Aurora Curtain',
     slug: 'aurora-curtain',
     description:
