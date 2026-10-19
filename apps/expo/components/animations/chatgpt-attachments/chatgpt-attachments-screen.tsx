@@ -3,7 +3,7 @@ import type { CameraType, FlashMode } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Stack } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type TextInput } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
 import { OverKeyboardView } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { CameraBar } from './camera/camera-bar';
@@ -28,7 +28,7 @@ function ChatGptAttachmentsContent() {
   const { width, height, composerBottom, composerStyle, gridWidth, gridHeight } =
     useSheetGeometry();
   const { photos, status } = usePhotoLibrary();
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const gridRef = useRef<PhotoGridHandle>(null);
   const cameraRef = useRef<CameraSheetHandle>(null);
 

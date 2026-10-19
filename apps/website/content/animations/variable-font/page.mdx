@@ -1,0 +1,181 @@
+export const meta = {
+  title: 'Variable Font',
+  slug: 'variable-font',
+  description: "A Roboto Flex poster using Expo SDK 58's variable font support. Drag the XY pad to change native font width, weight, and size while alternating rows scroll in opposite directions.",
+  video: '/videos/variable-font.mp4',
+  tags: ['typography', 'variable-font', 'expo-font', 'sdk-58', 'marquee', 'gesture', 'reanimated'],
+}
+
+## Load a variable font with Expo
+
+This example uses Expo SDK 58 and React Native 0.88. `expo-font` loads the bundled Roboto Flex variable TTF under one family name. Native Text then changes the font's `wdth` and `wght` axes through `fontVariationSettings` while the poster scrolls.
+
+Drag the XY pad right for wider letters, or up for larger, heavier letters. The displayed size changes with a uniform transform. Width and weight change the actual font axes. Adjacent rows travel in opposite directions.
+
+The website preview plays the supplied 720 × 720, 60 fps recording. Open the example in the Expo app to interact with the font.
+
+<Installer packages={['expo-font', '@expo/ui', '@react-native-masked-view/masked-view', 'react-native-gesture-handler', 'react-native-reanimated', 'react-native-worklets', 'react-native-safe-area-context']} />
+
+Use the SDK 58 versions of these packages, including Gesture Handler 3, Reanimated 4.7, and Worklets 0.13. Build a development app after installing native dependencies.
+
+## Copy the poster
+
+Copy the entire [variable-font folder](https://github.com/SchroederNathan/react-native-motion/tree/main/apps/expo/components/animations/variable-font), including `assets`, into your app's components directory. Keep all `.ios.tsx` and `.web.tsx` files outside Expo Router's route directory. Internal imports are relative, so the copied example does not need Expo Router or a path alias.
+
+Wrap it in gesture and safe-area providers. If your app already has these providers, render the example inside them.
+
+<CodePreviewer>
+
+```tsx title="App.tsx"
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { VariableFontExample } from './components/variable-font';
+
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <VariableFontExample />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+```
+
+</CodePreviewer>
+
+`VariableFontExample` is an alias of `VariableFontScreen`. Pass your navigator's focus state as `isActive` if it keeps inactive screens mounted. The prop defaults to `true` for standalone use.
+
+| File | Responsibility |
+| --- | --- |
+| `index.tsx` | Screen exports |
+| `variable-font-screen.tsx` | Font loading, poster layout, and pad placement |
+| `poster-frame.ios.tsx` | Expo UI concentric frame on iOS 26 and later |
+| `poster-frame.tsx` | Frame fallback for Android and web |
+| `poster-frame.types.ts` | Shared frame props |
+| `marquee.tsx` | Fixed repeating strings, scrolling, size, and lifecycle |
+| `variable-text.tsx` | Native Text font-axis updates |
+| `variable-text.web.tsx` | Browser font-axis updates |
+| `variable-text.types.ts` | Shared text renderer props |
+| `font-variations.ts` | Width, weight, and optical-size settings |
+| `word-metrics.ts` | Poster words and measured font advances |
+| `generate-metrics.swift` | Regenerate the advances after changing words |
+| `use-font-axes.ts` | Shared axis values and accessible state |
+| `xy-pad.tsx` | Gesture, keyboard controls, and accessibility actions |
+| `palette.ts` | Poster and control colors |
+| `assets/` | Roboto Flex variable TTF and font license |
+
+## Register the bundled TTF
+
+The screen loads one variable font file through `useFonts` before mounting the poster. The key `RobotoFlex` becomes the `fontFamily` used by every text row. The loader handles failures and waits until the family is available:
+
+```tsx
+import { useFonts } from 'expo-font';
+
+export function VariableFontScreen({ isActive = true }: { isActive?: boolean }) {
+  const [loaded, error] = useFonts({
+    RobotoFlex: require('./assets/RobotoFlex.ttf'),
+  });
+  if (error) {
+    throw new Error('Variable Font could not load assets/RobotoFlex.ttf.', {
+      cause: error,
+    });
+  }
+  if (!loaded) return null;
+  return <TypePoster isActive={isActive} />;
+}
+```
+
+`TypePoster` is the layout component in the same source file. The full variable TTF contains the available axes; separate static font files for each weight are unnecessary.
+
+## Map the pad to font axes
+
+The pad stores `x` and `y` as normalized shared values between 0 and 1. Width changes linearly. Weight uses a fourth-power curve, keeping most of the pad bold and the lightest settings near the bottom. Optical size stays fixed at 144.
+
+```ts title="font-variations.ts"
+export function getFontVariationSettings(x: number, y: number) {
+  'worklet';
+  const width = 50 + x * 100;
+  const weight = 1000 - Math.pow(y, 4) * 900;
+  return `"opsz" 144, "wdth" ${width}, "wght" ${weight}`;
+}
+```
+
+| Axis | Minimum | Maximum |
+| --- | --- | --- |
+| Width, `wdth` | 50, left | 150, right |
+| Weight, `wght` | 100, bottom | 1000, top |
+| Optical size, `opsz` | 144 | 144 |
+
+Vertical movement also changes displayed size and row spacing. Native Text renders at the smallest supported size, and a uniform parent transform controls its displayed size. The axis settings control letter shapes and spacing independently of that transform.
+
+Both text renderers set `allowFontScaling={false}` to preserve the measured poster layout, which is exposed as one accessible image.
+
+## Animate native Text
+
+Keep both text renderers. On native, Reanimated 4.7.1 filters `fontVariationSettings` out of animated styles. `variable-text.tsx` sends it through `useAnimatedProps` instead:
+
+```tsx
+const animatedProps = useAnimatedProps<NativeAxisProps>(() =>
+  visible.get()
+    ? { fontVariationSettings: getFontVariationSettings(x.get(), y.get()) }
+    : {},
+);
+```
+
+An `AxisText` wrapper forwards its ref to native Text and applies the initial settings through the Text style:
+
+```tsx
+return (
+  <Text
+    ref={ref}
+    {...props}
+    style={[
+      style,
+      fontVariationSettings ? { fontVariationSettings } : undefined,
+    ]}
+  />
+);
+```
+
+Both parts matter. The style sets the initial axes; animated props update the native attribute on subsequent frames. The web renderer uses `useAnimatedStyle` for the browser's `fontVariationSettings` style.
+
+The native renderer keeps a taller line box and offsets its text vertically so iOS can draw the full capitals. Each Text frame covers the viewport plus one word. Rows below the viewport stop receiving axis updates.
+
+## Keep the marquee continuous
+
+The gesture, font settings, layout, and scrolling use Reanimated shared values. Drag frames do not pass through React state. After release, React updates the pad's accessible width and weight.
+
+Rows keep fixed strings throughout a drag. A deterministic seed picks each row's starting character, so rows remain staggered as the axes change. Rows moving in the same direction share one animated parent, leaving two moving native transforms during steady scrolling.
+
+`word-metrics.ts` stores measured Roboto Flex advances at width 50, 100, and 150 and weight 100, 400, 700, and 1000. A worklet interpolates those advances using the same axis values as native Text. The current word width sets the wrap distance, keeping loop boundaries aligned without measuring rendered Text on every frame.
+
+The frame callback advances at 42 points per second and caps a single frame's delta at 32 ms. The marquee pauses when the app becomes inactive, Reduce Motion is enabled, or `isActive` is false. It checks the live Reduce Motion setting on mount and listens for changes.
+
+## Change the words
+
+Run this from the copied example folder on macOS:
+
+```bash
+swift generate-metrics.swift EXPO "VARIABLE FONTS"
+```
+
+The generator updates `WORDS` and `ADVANCES` in `word-metrics.ts`. The table is bundled, so the app does not need Swift at runtime. If you change the font, optical size, axis ranges, or letter spacing, update the generator and regenerate the advances too. Mismatched advances cause gaps or jumps when a row wraps.
+
+## Keep the native frame and controls
+
+On iOS 26 and later, Expo UI's static `ConcentricRectangle` supplies a UIKit mask through MaskedView. SwiftUI derives the corners from the device and inset. Animated text stays in the React Native hierarchy. Older iOS versions, Android, and web use the fallback frame.
+
+The pad is one adjustable control with an announced width and weight. Native accessibility actions move up, down, left, and right. On web, focus the pad and use arrow keys. Hold Shift for a larger step; Home restores the center. Repeated text rows stay hidden from the accessibility tree, leaving one poster description.
+
+## Native setup notes
+
+Expo's Babel preset configures the Worklets plugin. Use a rebuilt SDK 58 development app when changing native packages or Reanimated's static feature flags. Fast Refresh cannot apply native build settings.
+
+The original project's profiling setup enabled Reanimated's synchronous UI-prop flags for its two moving parents. It also tested a 60 Hz iPhone configuration. Those refresh-rate settings are optional profiling choices, and this gallery keeps its normal refresh-rate behavior.
+
+If the font does not load, confirm `assets/RobotoFlex.ttf` was copied with the source. If dragging does nothing, check the gesture provider and SDK-compatible package versions. If the font stays at its initial weight, retain the native animated-props wrapper and the initial Text style.
+
+## Source and font license
+
+Copied from [Nathan Schroeder's Expo variable font example](https://github.com/SchroederNathan/expo-variable-font). Roboto Flex uses the SIL Open Font License. Keep `assets/RobotoFlex-OFL.txt` with copies you distribute.

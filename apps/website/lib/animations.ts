@@ -28,6 +28,7 @@ const GITHUB_ANIMATION_DIRS = new Set([
   'gallery-carousel',
   'radial-menu',
   'spring-toast',
+  'variable-font',
 ])
 
 export function getAnimationGitHubUrl(slug: string): string {

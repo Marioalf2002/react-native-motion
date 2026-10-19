@@ -7,7 +7,7 @@ import {
   StyleSheet,
   TextInput,
   View,
-  type TextInput as TextInputType,
+  type TextInputInstance,
 } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -97,7 +97,7 @@ export interface ComposerProps {
  * into. Neither clips: the button's rim and its press bulge are drawn outside
  * its bounds, and an `overflow: hidden` on the bar would cut them off.
  */
-export const Composer = forwardRef<TextInputType, ComposerProps>(function Composer(
+export const Composer = forwardRef<TextInputInstance, ComposerProps>(function Composer(
   { attachments, strip, plusOut, pendingIds, onPlusPress, onRemove },
   ref,
 ) {

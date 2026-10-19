@@ -46,6 +46,7 @@ export default function AnimationDetail() {
   const title = animation?.title ?? 'Animation';
   const Screen = slug ? animationScreens[slug] : undefined;
   const isAurora = slug === 'aurora-curtain';
+  const isVariableFont = slug === 'variable-font';
 
   return (
     <>
@@ -64,6 +65,16 @@ export default function AnimationDetail() {
                 headerShadowVisible: false,
                 headerStyle: { backgroundColor: 'transparent' },
                 headerTintColor: '#F4F3FA',
+              }
+            : {}),
+          ...(isVariableFont
+            ? {
+                headerTitle: '',
+                headerTransparent: true,
+                headerShadowVisible: false,
+                headerBlurEffect: 'none',
+                headerStyle: { backgroundColor: 'transparent' },
+                headerTintColor: '#2002f5',
               }
             : {}),
         }}
