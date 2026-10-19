@@ -1,31 +1,8 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { Text, View } from 'react-native';
 import { animationScreens } from '@/components/animations/registry';
 import { animations } from '@/data/animations';
 import { useTheme } from '@/theme';
-
-function VariableFontBackButton() {
-  const router = useRouter();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Back to animations"
-      onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
-      style={({ pressed }) => ({
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#cecbdf',
-        opacity: pressed ? 0.8 : 1,
-      })}
-    >
-      <Ionicons name="chevron-back" size={26} color="#2002f5" />
-    </Pressable>
-  );
-}
 
 function ComingSoon({ title }: { title: string }) {
   const { colors, theme, tokens } = useTheme();
@@ -97,9 +74,7 @@ export default function AnimationDetail() {
                 headerShadowVisible: false,
                 headerBlurEffect: 'none',
                 headerStyle: { backgroundColor: 'transparent' },
-                headerTintColor: '#2002f5',
-                headerBackVisible: false,
-                headerLeft: () => <VariableFontBackButton />,
+                headerTintColor: '#cecbdf',
               }
             : {}),
         }}
